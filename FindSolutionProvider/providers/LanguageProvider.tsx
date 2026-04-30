@@ -16,21 +16,27 @@ const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<LanguageCode>("en");
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("app-language");
-    if (stored === "en" || stored === "ar") {
-      setLanguageState(stored);
-      i18n.changeLanguage(stored);
-    }
+    const initialLanguage: LanguageCode =
+      stored === "en" || stored === "ar" ? stored : "en";
+
+    setLanguageState(initialLanguage);
+    i18n.changeLanguage(initialLanguage);
+    document.documentElement.lang = initialLanguage;
+    document.documentElement.dir = initialLanguage === "ar" ? "rtl" : "ltr";
+    setIsReady(true);
   }, []);
 
   useEffect(() => {
+    if (!isReady) return;
     i18n.changeLanguage(language);
     document.documentElement.lang = language;
     document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
     localStorage.setItem("app-language", language);
-  }, [language]);
+  }, [language, isReady]);
 
   const value = useMemo(
     () => ({
@@ -40,6 +46,10 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }),
     [language],
   );
+
+  if (!isReady) {
+    return null;
+  }
 
   return (
     <I18nextProvider i18n={i18n}>
