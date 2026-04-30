@@ -11,17 +11,19 @@ export function MobileStepCard({ currentStep }: MobileStepCardProps) {
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:hidden">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-2.5">
         <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gs1-orange text-sm font-bold text-white">
             {current.index}
           </span>
           <div className="leading-tight">
-            <p className="text-xl font-semibold text-gs1-blue">{current.title}</p>
-            <p className="text-sm text-slate-400">{current.subtitle}</p>
+            <p className="text-lg font-semibold text-gs1-blue sm:text-xl">
+              {current.title}
+            </p>
+            <p className="text-xs text-slate-400 sm:text-sm">{current.subtitle}</p>
           </div>
         </div>
-        <span className="pt-1 text-sm font-semibold tracking-[0.08em] text-slate-400">
+        <span className="whitespace-nowrap pt-1 text-[11px] font-semibold tracking-[0.08em] text-slate-400 sm:text-sm">
           STEP {current.index} OF {STEPS.length}
         </span>
       </div>

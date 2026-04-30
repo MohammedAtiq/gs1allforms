@@ -97,7 +97,7 @@ export function FeesStep({
 
   return (
     <div className="flex min-h-[620px] flex-col gap-5">
-      <header className="flex items-start justify-between gap-4">
+      <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-gs1-blue">
             <ArrowRightLeft size={16} strokeWidth={2.2} />
@@ -107,7 +107,7 @@ export function FeesStep({
             <p className="text-xs text-slate-500">Fees & payment method</p>
           </div>
         </div>
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600 ring-1 ring-slate-200">
+        <span className="shrink-0 whitespace-nowrap rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600 ring-1 ring-slate-200 sm:px-3 sm:text-[11px]">
           Step 4 of 6
         </span>
       </header>
@@ -212,20 +212,20 @@ export function FeesStep({
         ) : null}
       </div>
 
-      <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-5">
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-5">
         <ProgressDots active={4} total={6} />
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2">
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex h-10 min-w-[94px] items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-300"
+            className="inline-flex h-10 min-w-[78px] items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-slate-300 sm:min-w-[94px] sm:px-4 sm:text-sm"
           >
             ← Back
           </button>
           <button
             type="button"
             onClick={handleContinue}
-            className="inline-flex h-10 min-w-[110px] items-center justify-center gap-2 rounded-md bg-gs1-blue px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-gs1-blue-dark"
+            className="inline-flex h-10 min-w-[96px] items-center justify-center gap-2 rounded-md bg-gs1-blue px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-gs1-blue-dark sm:min-w-[110px] sm:px-5 sm:text-sm"
           >
             Continue
             <span aria-hidden>→</span>
