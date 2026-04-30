@@ -22,7 +22,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const stored = localStorage.getItem("app-language");
     const initialLanguage: LanguageCode =
       stored === "en" || stored === "ar" ? stored : "en";
-
+ 
     setLanguageState(initialLanguage);
     i18n.changeLanguage(initialLanguage);
     document.documentElement.lang = initialLanguage;
