@@ -2,23 +2,29 @@
 
 import { CheckCheck, Home } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { CompanyInfoValues } from "../schemas/companyInfo";
-import type { FeesValues } from "../steps/FeesStep";
+import type { PaymentValues } from "../steps/PaymentStep";
 
 interface SubmissionSuccessProps {
-  company?: CompanyInfoValues;
+  applicantName?: string;
+  companyName?: string;
   categoryCount: number;
-  fees?: FeesValues;
+  payment?: PaymentValues;
   onBackToHome: () => void;
 }
 
 export function SubmissionSuccess({
-  company,
+  applicantName,
+  companyName,
   categoryCount,
-  fees,
+  payment,
   onBackToHome,
 }: SubmissionSuccessProps) {
   const { t } = useTranslation();
+  const ref =
+    payment?.paymentMethod && payment?.netAmountSar != null
+      ? `${payment.paymentMethod.toUpperCase()}-${payment.netAmountSar}`
+      : "—";
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 items-center justify-center px-6 py-10">
       <section className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm sm:p-8">
@@ -29,19 +35,19 @@ export function SubmissionSuccess({
         <h2 className="text-2xl font-bold text-gs1-blue sm:text-3xl">{t("success.submitted")}</h2>
         <p className="mt-2 text-sm text-slate-600">
           {t("success.thankYou", {
-            name: company?.contactPerson || "User",
+            name: applicantName?.trim() || "User",
           })}
         </p>
         <p className="mt-1 text-sm text-slate-600">
           {t("success.message", {
-            company: company?.companyName || "your company",
+            company: companyName?.trim() || "your company",
           })}
         </p>
 
         <div className="mt-6 grid grid-cols-3 gap-1.5 rounded-xl bg-slate-50 p-2 sm:gap-2 sm:p-3">
           <Metric label={t("success.categories")} value={String(categoryCount)} />
           <Metric label={t("success.processing")} value="3-5 Days" />
-          <Metric label={t("success.reference")} value={fees?.referenceNumber || "—"} />
+          <Metric label={t("success.reference")} value={ref} />
         </div>
 
         <button
@@ -67,4 +73,3 @@ function Metric({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-

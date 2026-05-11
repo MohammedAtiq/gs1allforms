@@ -8,21 +8,23 @@ import { MobileStepCard } from "./components/MobileStepCard";
 import { Sidebar } from "./components/Sidebar";
 import { SubmissionSuccess } from "./components/SubmissionSuccess";
 import { LanguageProvider } from "./providers/LanguageProvider";
-import { CompanyInfo } from "./steps/CompanyInfo";
 import { CategoryStep } from "./steps/CategoryStep";
-import { DeclarationStep, type DeclarationValues } from "./steps/DeclarationStep";
+import { CompanyDetailsStep } from "./steps/CompanyDetailsStep";
+import { ContactsStep } from "./steps/ContactsStep";
 import { DocumentsStep, type DocumentsValues } from "./steps/DocumentsStep";
-import { FeesStep, type FeesValues } from "./steps/FeesStep";
+import { PaymentStep, type PaymentValues } from "./steps/PaymentStep";
 import { ReviewStep } from "./steps/ReviewStep";
-import type { CompanyInfoValues } from "./schemas/companyInfo";
+import type { CompanyProfileValues } from "./schemas/companyProfile";
+import type { ContactsValues } from "./schemas/contacts";
 import { STEPS, type StepId } from "./types";
 
 interface FormData {
-  company?: CompanyInfoValues;
-  category?: string[];
+  categories?: string[];
+  company?: CompanyProfileValues;
   documents?: DocumentsValues;
-  fees?: FeesValues;
-  declaration?: DeclarationValues;
+  contacts?: ContactsValues;
+  reviewConsent?: boolean;
+  payment?: PaymentValues;
 }
 
 export default function FindSolutionProvider() {
@@ -34,64 +36,68 @@ export default function FindSolutionProvider() {
 }
 
 function FindSolutionProviderContent() {
-  const [currentStep, setCurrentStep] = useState<StepId>("company");
+  const [currentStep, setCurrentStep] = useState<StepId>("categories");
   const [data, setData] = useState<FormData>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const completedPercent = useMemo(() => {
-    if (currentStep === "review") return 100;
     const idx = STEPS.findIndex((s) => s.id === currentStep);
-    const completedSteps = Object.keys(data).length;
-    return Math.round(
-      (Math.max(completedSteps, Math.max(idx, 0)) / STEPS.length) * 100,
-    );
-  }, [currentStep, data]);
+    const safe = idx < 0 ? 0 : idx;
+    return Math.round(((safe + 1) / STEPS.length) * 100);
+  }, [currentStep]);
 
   const completedStepIds = useMemo(() => {
     const ids: StepId[] = [];
+    if (data.categories?.length) ids.push("categories");
     if (data.company) ids.push("company");
-    if (data.category) ids.push("category");
     if (data.documents) ids.push("documents");
-    if (data.fees) ids.push("fees");
-    if (data.declaration) ids.push("declaration");
+    if (data.contacts) ids.push("contacts");
+    if (data.reviewConsent) ids.push("review");
+    if (data.payment) ids.push("payment");
     return ids;
   }, [data]);
 
-  function handleCompanySubmit(values: CompanyInfoValues) {
-    setData((prev) => ({ ...prev, company: values }));
-    setCurrentStep("category");
+  function handleCategoriesSubmit(values: string[]) {
+    setData((prev) => ({ ...prev, categories: values }));
+    setCurrentStep("company");
   }
 
-  function handleCategorySubmit(values: string[]) {
-    setData((prev) => ({ ...prev, category: values }));
+  function handleCompanySubmit(values: CompanyProfileValues) {
+    setData((prev) => ({ ...prev, company: values }));
     setCurrentStep("documents");
   }
 
   function handleDocumentsSubmit(values: DocumentsValues) {
     setData((prev) => ({ ...prev, documents: values }));
-    setCurrentStep("fees");
+    setCurrentStep("contacts");
   }
 
-  function handleFeesSubmit(values: FeesValues) {
-    setData((prev) => ({ ...prev, fees: values }));
-    setCurrentStep("declaration");
-  }
-
-  function handleDeclarationSubmit(values: DeclarationValues) {
-    setData((prev) => ({ ...prev, declaration: values }));
+  function handleContactsSubmit(values: ContactsValues) {
+    setData((prev) => ({ ...prev, contacts: values }));
     setCurrentStep("review");
   }
 
-  function handleFinalSubmit() {
-    console.log("GS1 Solution Provider submission payload:", data);
+  function handleProceedToPayment() {
+    setData((prev) => ({ ...prev, reviewConsent: true }));
+    setCurrentStep("payment");
+  }
+
+  function handlePaymentSubmit(payment: PaymentValues) {
+    setData((prev) => {
+      const payload: FormData = { ...prev, payment };
+      console.log("GS1 Authorised Solution Provider — full application payload:", payload);
+      return payload;
+    });
     setIsSubmitted(true);
   }
 
   function handleBackToHome() {
-    setCurrentStep("company");
+    setCurrentStep("categories");
     setData({});
     setIsSubmitted(false);
   }
+
+  const selectedCategories = data.categories ?? [];
 
   return (
     <div className="flex min-h-full flex-col bg-gs1-surface">
@@ -99,9 +105,10 @@ function FindSolutionProviderContent() {
 
       {isSubmitted ? (
         <SubmissionSuccess
-          company={data.company}
-          categoryCount={data.category?.length ?? 0}
-          fees={data.fees}
+          applicantName={data.contacts?.billingName}
+          companyName={data.company?.companyNameEn}
+          categoryCount={selectedCategories.length}
+          payment={data.payment}
           onBackToHome={handleBackToHome}
         />
       ) : (
@@ -117,52 +124,46 @@ function FindSolutionProviderContent() {
               <MobileStepCard currentStep={currentStep} />
 
               <section className="flex-1 rounded-xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
-              {currentStep === "company" ? (
-                <CompanyInfo
-                  defaultValues={data.company}
-                  onSubmit={handleCompanySubmit}
-                />
-              ) : currentStep === "category" ? (
-                <CategoryStep
-                  defaultSelected={data.category}
-                  onBack={() => setCurrentStep("company")}
-                  onSubmit={handleCategorySubmit}
-                />
-              ) : currentStep === "documents" ? (
-                <DocumentsStep
-                  defaultValues={data.documents}
-                  onBack={() => setCurrentStep("category")}
-                  onSubmit={handleDocumentsSubmit}
-                />
-              ) : currentStep === "fees" ? (
-                <FeesStep
-                  selectedCategories={data.category}
-                  defaultValues={data.fees}
-                  onBack={() => setCurrentStep("documents")}
-                  onSubmit={handleFeesSubmit}
-                />
-              ) : currentStep === "declaration" ? (
-                <DeclarationStep
-                  defaultValues={data.declaration}
-                  onBack={() => setCurrentStep("fees")}
-                  onSubmit={handleDeclarationSubmit}
-                />
-              ) : currentStep === "review" ? (
-                <ReviewStep
-                  company={data.company}
-                  category={data.category}
-                  documents={data.documents}
-                  fees={data.fees}
-                  declaration={data.declaration}
-                  onBack={() => setCurrentStep("declaration")}
-                  onSubmitApplication={handleFinalSubmit}
-                />
-              ) : (
-                <PlaceholderStep
-                  stepId={currentStep}
-                  onBack={() => setCurrentStep("declaration")}
-                />
-              )}
+                {currentStep === "categories" ? (
+                  <CategoryStep
+                    defaultSelected={data.categories}
+                    onSubmit={handleCategoriesSubmit}
+                  />
+                ) : currentStep === "company" ? (
+                  <CompanyDetailsStep
+                    defaultValues={data.company}
+                    onBack={() => setCurrentStep("categories")}
+                    onSubmit={handleCompanySubmit}
+                  />
+                ) : currentStep === "documents" ? (
+                  <DocumentsStep
+                    defaultValues={data.documents}
+                    onBack={() => setCurrentStep("company")}
+                    onSubmit={handleDocumentsSubmit}
+                  />
+                ) : currentStep === "contacts" ? (
+                  <ContactsStep
+                    defaultValues={data.contacts}
+                    onBack={() => setCurrentStep("documents")}
+                    onSubmit={handleContactsSubmit}
+                  />
+                ) : currentStep === "review" ? (
+                  <ReviewStep
+                    categories={data.categories}
+                    company={data.company}
+                    documents={data.documents}
+                    contacts={data.contacts}
+                    onBack={() => setCurrentStep("contacts")}
+                    onEdit={(step) => setCurrentStep(step)}
+                    onProceedToPayment={handleProceedToPayment}
+                  />
+                ) : currentStep === "payment" ? (
+                  <PaymentStep
+                    selectedCategoryIds={selectedCategories}
+                    onBack={() => setCurrentStep("review")}
+                    onSubmitPay={handlePaymentSubmit}
+                  />
+                ) : null}
               </section>
             </div>
           </div>
@@ -170,35 +171,6 @@ function FindSolutionProviderContent() {
       )}
 
       <PageFooter />
-    </div>
-  );
-}
-
-function PlaceholderStep({
-  stepId,
-  onBack,
-}: {
-  stepId: StepId;
-  onBack: () => void;
-}) {
-  const step = STEPS.find((s) => s.id === stepId);
-  return (
-    <div className="flex min-h-[420px] flex-col items-start justify-center gap-3">
-      <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-medium text-slate-600 ring-1 ring-slate-200">
-        Step {step?.index} of {STEPS.length}
-      </span>
-      <h2 className="text-lg font-semibold text-gs1-blue">{step?.title}</h2>
-      <p className="text-sm text-slate-500">{step?.subtitle}</p>
-      <p className="text-sm text-slate-400">
-        This step will be implemented next.
-      </p>
-      <button
-        type="button"
-        onClick={onBack}
-        className="mt-2 inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 px-4 text-sm font-medium text-slate-700 hover:border-gs1-blue hover:text-gs1-blue"
-      >
-        ← Back to Company Info
-      </button>
     </div>
   );
 }

@@ -1,186 +1,183 @@
 "use client";
 
-import {
-  BadgeCheck,
-  Building2,
-  CreditCard,
-  FileCheck2,
-  Send,
-  SendHorizontal,
-  ShieldCheck,
-  Tags,
-} from "lucide-react";
-import { useMemo } from "react";
+import { Building2, Check, FileCheck2, Send, Tags, User } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useLanguage } from "../providers/LanguageProvider";
-import type { CompanyInfoValues } from "../schemas/companyInfo";
-import type { DeclarationValues } from "./DeclarationStep";
+import { StepFormFooter, StepFormHeader } from "../components/StepLayout";
+import { categoryTitleById } from "../constants/categories";
+import type { CompanyProfileValues } from "../schemas/companyProfile";
+import { LEGAL_STATUS_OPTIONS, TURNOVER_OPTIONS } from "../schemas/companyProfile";
+import type { ContactsValues } from "../schemas/contacts";
 import type { DocumentsValues } from "./DocumentsStep";
-import type { FeesValues } from "./FeesStep";
+import type { StepId } from "../types";
 
 interface ReviewStepProps {
-  company?: CompanyInfoValues;
-  category?: string[];
+  categories?: string[];
+  company?: CompanyProfileValues;
   documents?: DocumentsValues;
-  fees?: FeesValues;
-  declaration?: DeclarationValues;
+  contacts?: ContactsValues;
   onBack: () => void;
-  onSubmitApplication: () => void;
+  onEdit: (step: StepId) => void;
+  onProceedToPayment: () => void;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  barcode: "Barcode Solution Provider",
-  auth: "Authentication Solution Provider",
-  printing: "Online Printing Solution Provider",
-  integrator: "System Integrators",
-  retail: "Retail Software Solution Provider",
-  packaging: "Packaging",
-  rfid: "RFID Solution Provider",
-  catalog: "Images, Dimensions & e-Cataloguing",
-};
+function turnoverLabel(value?: string): string {
+  if (!value?.trim()) return "—";
+  return TURNOVER_OPTIONS.find((o) => o.value === value)?.label ?? "—";
+}
 
-const PAYMENT_MODE_LABELS: Record<FeesValues["paymentMode"], string> = {
-  online: "Online Payment (Card / Mada / Net Banking)",
-  dd: "Demand Draft (DD / Pay Order)",
-  neft: "NEFT (Bank Transfer)",
-};
+function legalLabel(value?: string): string {
+  if (!value?.trim()) return "—";
+  return LEGAL_STATUS_OPTIONS.find((o) => o.value === value)?.label ?? "—";
+}
 
 export function ReviewStep({
+  categories = [],
   company,
-  category,
   documents,
-  fees,
-  declaration,
+  contacts,
   onBack,
-  onSubmitApplication,
+  onEdit,
+  onProceedToPayment,
 }: ReviewStepProps) {
   const { t } = useTranslation();
-  const { isRTL } = useLanguage();
-  const categoryLabels = useMemo(
-    () => (category?.length ? category.map((id) => CATEGORY_LABELS[id] ?? id) : []),
-    [category],
-  );
+  const [consent, setConsent] = useState(false);
+  const [error, setError] = useState("");
+
+  function handleProceed() {
+    if (!consent) {
+      setError(t("review.consentRequired"));
+      return;
+    }
+    setError("");
+    onProceedToPayment();
+  }
 
   return (
     <div className="flex min-h-[620px] flex-col gap-4">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-gs1-blue">
-            <Send size={16} strokeWidth={2.2} />
-          </span>
-          <div>
-            <h2 className="text-base font-semibold text-gs1-blue">
-              {t("steps.reviewTitle")}
-            </h2>
-            <p className="text-xs text-slate-500">{t("steps.reviewSubtitle")}</p>
-          </div>
-        </div>
-        <span className="shrink-0 whitespace-nowrap rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600 ring-1 ring-slate-200 sm:px-3 sm:text-[11px]">
-          {t("common.stepOf", { current: 6, total: 6 })}
-        </span>
-      </header>
+      <StepFormHeader icon={Send} stepId="review" />
 
-      <InfoSection
-        icon={Building2}
-        title="Company Details"
-        rows={[
-          ["Company", company?.companyName || "—"],
-          ["Contact", company?.contactPerson || "—"],
-          ["Email", company?.email || "—"],
-          ["Phone", company?.phone || "—"],
-          [
-            "Address",
-            company
-              ? `${company.address}, ${company.city}, ${company.state}, ${company.pin}`
-              : "—",
-          ],
-          ["Website", company?.website || "—"],
-        ]}
-      />
-
-      <InfoSection
-        icon={FileCheck2}
-        title="Legal Documents"
-        rows={[
-          [
-            "National ID / Iqama",
-            documents?.nationalIdIqamaNumber || "—",
-          ],
-          ["VAT Registration", documents?.vatRegistrationNumber || "—"],
-          ["CR Number", documents?.commercialRegistrationNumber || "—"],
-        ]}
-      />
-
-      <InfoSection
-        icon={CreditCard}
-        title="Payment Details"
-        rows={[
-          ["Mode", fees?.paymentMode ? PAYMENT_MODE_LABELS[fees.paymentMode] : "—"],
-          ["Ref. No.", fees?.referenceNumber || "—"],
-          ["Signatory", declaration?.authorizedSignatory || "—"],
-          ["Remarks", declaration?.additionalRemarks || "—"],
-        ]}
-      />
+      <p className="text-sm text-slate-500">{t("review.intro")}</p>
 
       <section className="rounded-xl border border-slate-200 bg-white">
         <header className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-2.5">
           <Tags size={14} className="text-gs1-blue" />
           <h3 className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-700">
-            Categories ({categoryLabels.length})
+            {t("review.selectedCategories")}
           </h3>
         </header>
         <div className="flex flex-wrap gap-2 p-3">
-          {categoryLabels.length > 0 ? (
-            categoryLabels.map((item) => (
+          {categories.length > 0 ? (
+            categories.map((id) => (
               <span
-                key={item}
+                key={id}
                 className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700"
               >
-                {item}
+                {categoryTitleById(id)}
               </span>
             ))
           ) : (
-            <span className="text-xs text-slate-500">No categories selected.</span>
+            <span className="text-xs text-slate-500">{t("review.noCategories")}</span>
           )}
         </div>
       </section>
 
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-        <div className="flex items-center gap-2 text-sm font-semibold text-emerald-800">
-          <BadgeCheck size={16} />
-          Declaration Confirmed
-        </div>
-        <p className="mt-1 text-xs text-emerald-700">
-          {declaration?.consentAccepted
-            ? "Your application will be processed within 7 business days of receipt."
-            : "Declaration consent is pending."}
-        </p>
-      </div>
+      <InfoSection
+        icon={Building2}
+        title={t("review.companyBlock")}
+        action={
+          <button
+            type="button"
+            onClick={() => onEdit("company")}
+            className="text-xs font-semibold text-gs1-orange hover:underline"
+          >
+            Edit
+          </button>
+        }
+        rows={[
+          [t("review.rowNameEn"), company?.companyNameEn ?? ""],
+          [t("review.rowCr"), company?.crNumber ?? ""],
+          [t("review.rowVat"), company?.vatNumber ?? ""],
+          [
+            t("review.rowRegionCity"),
+            company ? `${company.region} / ${company.city}` : "",
+          ],
+          [t("review.rowTurnover"), company ? turnoverLabel(company.annualTurnover) : ""],
+          [t("review.rowLegal"), company ? legalLabel(company.legalStatus) : ""],
+        ]}
+      />
 
-      <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-5">
-        <ProgressDots active={6} total={6} />
-        <div className={`${isRTL ? "mr-auto" : "ml-auto"} flex items-center gap-2`}>
+      <InfoSection
+        icon={User}
+        title={t("review.contactBlock")}
+        action={
           <button
             type="button"
-            onClick={onBack}
-            className="inline-flex h-10 min-w-[78px] items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-slate-300 sm:min-w-[94px] sm:px-4 sm:text-sm"
+            onClick={() => onEdit("contacts")}
+            className="text-xs font-semibold text-gs1-orange hover:underline"
           >
-            {`${isRTL ? "→" : "←"} ${t("common.back")}`}
+            Edit
           </button>
+        }
+        rows={[
+          [t("review.rowBilling"), contacts?.billingName ?? ""],
+          [t("review.rowBillingEmail"), contacts?.billingEmail ?? ""],
+          [t("review.rowHead"), contacts?.headName ?? ""],
+        ]}
+      />
+
+      <InfoSection
+        icon={FileCheck2}
+        title={t("review.documentsBlock")}
+        action={
           <button
             type="button"
-            onClick={onSubmitApplication}
-            className="inline-flex h-10 min-w-[124px] items-center justify-center gap-2 rounded-md bg-gs1-orange px-3 text-xs font-semibold text-white shadow-sm transition hover:brightness-95 sm:min-w-[148px] sm:px-5 sm:text-sm"
+            onClick={() => onEdit("documents")}
+            className="text-xs font-semibold text-gs1-orange hover:underline"
           >
-            <SendHorizontal
-              size={14}
-              strokeWidth={2.2}
-              className={isRTL ? "rotate-180" : ""}
-            />
-            Submit Application
+            Edit
           </button>
-        </div>
+        }
+        rows={[
+          [t("review.docCr"), documents?.crCertificate ? "Uploaded" : ""],
+          [t("review.docVat"), documents?.vatCertificate ? "Uploaded" : ""],
+          [t("review.docFin"), documents?.financialStatements ? "Uploaded" : ""],
+          [t("review.docPl"), documents?.plStatement ? "Uploaded" : ""],
+        ]}
+        valueRenderer={(value) =>
+          value === "Uploaded" ? (
+            <span className="inline-flex items-center gap-1 font-medium text-emerald-600">
+              <Check size={14} /> Uploaded
+            </span>
+          ) : (
+            <span className="text-slate-400">—</span>
+          )
+        }
+      />
+
+      <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+        <label className="flex cursor-pointer gap-3 text-xs leading-relaxed text-slate-700">
+          <input
+            type="checkbox"
+            checked={consent}
+            onChange={(e) => {
+              setConsent(e.target.checked);
+              setError("");
+            }}
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-gs1-blue"
+          />
+          <span>{t("review.consentText")}</span>
+        </label>
       </div>
+      {error ? <p className="text-xs font-medium text-rose-600">{error}</p> : null}
+
+      <StepFormFooter
+        active={5}
+        showBack
+        onBack={onBack}
+        primaryLabel={t("review.proceedPayment")}
+        onPrimaryClick={handleProceed}
+      />
     </div>
   );
 }
@@ -189,51 +186,34 @@ function InfoSection({
   icon: Icon,
   title,
   rows,
+  action,
+  valueRenderer,
 }: {
   icon: typeof Building2;
   title: string;
   rows: [string, string][];
+  action?: React.ReactNode;
+  valueRenderer?: (value: string) => React.ReactNode;
 }) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white">
-      <header className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-2.5">
-        <Icon size={14} className="text-gs1-blue" />
-        <h3 className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-700">
-          {title}
-        </h3>
+      <header className="flex items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 px-4 py-2.5">
+        <div className="flex items-center gap-2">
+          <Icon size={14} className="text-gs1-blue" />
+          <h3 className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-700">{title}</h3>
+        </div>
+        {action}
       </header>
       <div className="divide-y divide-slate-100">
         {rows.map(([label, value]) => (
           <div key={label} className="grid grid-cols-[120px_1fr] gap-3 px-4 py-2.5 text-xs">
             <span className="text-slate-500">{label}</span>
-            <span className="text-slate-700">{value || "—"}</span>
+            <span className="text-slate-700">
+              {valueRenderer ? valueRenderer(value) : value?.trim() ? value : "—"}
+            </span>
           </div>
         ))}
       </div>
     </section>
   );
 }
-
-function ProgressDots({ active, total }: { active: number; total: number }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      {Array.from({ length: total }).map((_, i) => {
-        const isActive = i + 1 === active;
-        const isDone = i + 1 < active;
-        return (
-          <span
-            key={i}
-            className={`h-1.5 rounded-full transition-all ${
-              isActive
-                ? "w-6 bg-gs1-orange"
-                : isDone
-                  ? "w-3 bg-gs1-blue"
-                  : "w-3 bg-slate-200"
-            }`}
-          />
-        );
-      })}
-    </div>
-  );
-}
-

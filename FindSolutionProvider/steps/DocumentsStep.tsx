@@ -1,14 +1,23 @@
 "use client";
 
-import { Building2, FileText, Landmark, ShieldCheck } from "lucide-react";
-import { useState } from "react";
+import { FileText, Upload } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useLanguage } from "../providers/LanguageProvider";
+import { StepFormFooter, StepFormHeader } from "../components/StepLayout";
+
+export interface FileMeta {
+  name: string;
+  size: number;
+  type: string;
+}
 
 export interface DocumentsValues {
-  nationalIdIqamaNumber: string;
-  vatRegistrationNumber: string;
-  commercialRegistrationNumber: string;
+  crCertificate: FileMeta | null;
+  vatCertificate: FileMeta | null;
+  financialStatements: FileMeta | null;
+  plStatement: FileMeta | null;
+  companyProfileBrochure: FileMeta | null;
+  technicalCapability: FileMeta | null;
 }
 
 interface DocumentsStepProps {
@@ -17,234 +26,212 @@ interface DocumentsStepProps {
   onSubmit: (values: DocumentsValues) => void;
 }
 
-const defaults: DocumentsValues = {
-  nationalIdIqamaNumber: "",
-  vatRegistrationNumber: "",
-  commercialRegistrationNumber: "",
+const empty: DocumentsValues = {
+  crCertificate: null,
+  vatCertificate: null,
+  financialStatements: null,
+  plStatement: null,
+  companyProfileBrochure: null,
+  technicalCapability: null,
 };
 
-export function DocumentsStep({
-  defaultValues,
-  onBack,
-  onSubmit,
-}: DocumentsStepProps) {
-  const { t } = useTranslation();
-  const { isRTL } = useLanguage();
-  const [values, setValues] = useState<DocumentsValues>({
-    ...defaults,
-    ...defaultValues,
-  });
-  const [errors, setErrors] = useState<{
-    nationalIdIqamaNumber?: string;
-    vatRegistrationNumber?: string;
-    commercialRegistrationNumber?: string;
-  }>({});
+type DocKey = keyof DocumentsValues;
 
-  function setField<K extends keyof DocumentsValues>(key: K, value: string) {
-    setValues((prev) => ({ ...prev, [key]: value }));
-    setErrors((prev) => ({ ...prev, [key]: undefined }));
+const MANDATORY: { key: DocKey; label: string; maxMb: number; pdfOnly?: boolean }[] = [
+  { key: "crCertificate", label: "Commercial Registration (CR) Certificate", maxMb: 5 },
+  { key: "vatCertificate", label: "ZATCA VAT Registration Certificate", maxMb: 5 },
+  { key: "financialStatements", label: "Audited Financial Statements - 2 Years", maxMb: 10, pdfOnly: true },
+  { key: "plStatement", label: "Profit & Loss Statement", maxMb: 5 },
+];
+
+const OPTIONAL: { key: DocKey; label: string; maxMb: number }[] = [
+  { key: "companyProfileBrochure", label: "Company Profile / Brochure", maxMb: 10 },
+  { key: "technicalCapability", label: "Technical Capability Document", maxMb: 10 },
+];
+
+function toMeta(file: File): FileMeta {
+  return { name: file.name, size: file.size, type: file.type };
+}
+
+function validateFile(file: File, maxMb: number, pdfOnly?: boolean): string | null {
+  if (file.size > maxMb * 1024 * 1024) {
+    return `File must be at most ${maxMb}MB.`;
   }
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  if (pdfOnly) {
+    if (ext !== "pdf" && file.type !== "application/pdf") {
+      return "PDF only for this field.";
+    }
+  } else {
+    if (!["pdf", "jpg", "jpeg"].includes(ext)) {
+      return "PDF or JPG only.";
+    }
+  }
+  return null;
+}
+
+export function DocumentsStep({ defaultValues, onBack, onSubmit }: DocumentsStepProps) {
+  const { t } = useTranslation();
+  const [values, setValues] = useState<DocumentsValues>({ ...empty, ...defaultValues });
+  const [errors, setErrors] = useState<Partial<Record<DocKey, string>>>({});
+  const [formError, setFormError] = useState("");
+
+  const setFile = useCallback((key: DocKey, file: File | null, err?: string) => {
+    setValues((prev) => ({ ...prev, [key]: file ? toMeta(file) : null }));
+    setErrors((prev) => ({ ...prev, [key]: err }));
+    setFormError("");
+  }, []);
 
   function handleContinue() {
-    const nextErrors: {
-      nationalIdIqamaNumber?: string;
-      vatRegistrationNumber?: string;
-      commercialRegistrationNumber?: string;
-    } = {};
-
-    const nationalId = values.nationalIdIqamaNumber.trim();
-    const vat = values.vatRegistrationNumber.trim();
-    const cr = values.commercialRegistrationNumber.trim();
-
-    if (!nationalId) {
-      nextErrors.nationalIdIqamaNumber = "National ID / Iqama number is required.";
-    } else if (!/^\d+$/.test(nationalId)) {
-      nextErrors.nationalIdIqamaNumber = "National ID / Iqama number must be numeric.";
-    } else if (nationalId.length !== 10) {
-      nextErrors.nationalIdIqamaNumber = "National ID / Iqama number must be 10 digits.";
+    const next: Partial<Record<DocKey, string>> = {};
+    for (const f of MANDATORY) {
+      if (!values[f.key]) {
+        next[f.key] = t("documents.required");
+      }
     }
-
-    if (vat && !/^\d{15}$/.test(vat)) {
-      nextErrors.vatRegistrationNumber =
-        "VAT registration number must be 15 digits.";
+    setErrors(next);
+    if (Object.keys(next).length > 0) {
+      setFormError(t("documents.completeMandatory"));
+      return;
     }
-
-    if (cr && !/^\d+$/.test(cr)) {
-      nextErrors.commercialRegistrationNumber =
-        "Commercial Registration number must be numeric.";
-    }
-
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
-
-    onSubmit({
-      nationalIdIqamaNumber: nationalId,
-      vatRegistrationNumber: vat,
-      commercialRegistrationNumber: cr,
-    });
+    onSubmit(values);
   }
 
   return (
     <div className="flex min-h-[620px] flex-col gap-5">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-gs1-blue">
-            <FileText size={16} strokeWidth={2.2} />
-          </span>
-          <div>
-            <h2 className="text-base font-semibold text-gs1-blue">
-              {t("steps.documentsTitle")}
-            </h2>
-            <p className="text-xs text-slate-500">{t("steps.documentsSubtitle")}</p>
-          </div>
-        </div>
-        <span className="shrink-0 whitespace-nowrap rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600 ring-1 ring-slate-200 sm:px-3 sm:text-[11px]">
-          {t("common.stepOf", { current: 3, total: 6 })}
-        </span>
-      </header>
+      <StepFormHeader icon={FileText} stepId="documents" />
 
-      <DocumentCard
-        label="National ID / Iqama Number"
-        required
-        hint="Enter your Iqama (for residents) or Saudi National ID"
-        placeholder="e.g. 1023456789"
-        value={values.nationalIdIqamaNumber}
-        onChange={(v) => setField("nationalIdIqamaNumber", v)}
-        icon={ShieldCheck}
-        error={errors.nationalIdIqamaNumber}
-      />
+      <p className="text-sm text-slate-500">{t("documents.intro")}</p>
 
-      <DocumentCard
-        label="VAT Registration Number"
-        hint="Company VAT number issued by Zakat, Tax and Customs Authority"
-        optional
-        placeholder="e.g. 300123456700003"
-        value={values.vatRegistrationNumber}
-        onChange={(v) => setField("vatRegistrationNumber", v)}
-        icon={Landmark}
-        error={errors.vatRegistrationNumber}
-      />
-
-      <DocumentCard
-        label="Commercial Registration (CR) Number"
-        hint="Official business registration number in Saudi Arabia"
-        optional
-        placeholder="e.g. 1010123456"
-        value={values.commercialRegistrationNumber}
-        onChange={(v) => setField("commercialRegistrationNumber", v)}
-        icon={Building2}
-        error={errors.commercialRegistrationNumber}
-      />
-
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-        <p className="text-sm font-semibold text-amber-800">Documents Checklist</p>
-        <ul className="mt-2 space-y-1.5 text-xs text-amber-900/90">
-          <li>⊙ Self-attested copies of all documents required</li>
-          <li>⊙ Audited Balance Sheet of last 2 years (physical submission)</li>
-          <li>⊙ Proof of fee payment to be submitted with application</li>
-          <li>⊙ Documents in PDF/JPG format, max 2MB each</li>
-        </ul>
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900/90">
+        {t("documents.reviewNote")}
       </div>
 
-      <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-5">
-        <ProgressDots active={3} total={6} />
-        <div className={`${isRTL ? "mr-auto" : "ml-auto"} flex items-center gap-2`}>
-          <button
-            type="button"
-            onClick={onBack}
-            className="inline-flex h-10 min-w-[78px] items-center justify-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-slate-300 sm:min-w-[94px] sm:px-4 sm:text-sm"
-          >
-            {`${isRTL ? "→" : "←"} ${t("common.back")}`}
-          </button>
-          <button
-            type="button"
-            onClick={handleContinue}
-            className="inline-flex h-10 min-w-[96px] items-center justify-center gap-2 rounded-md bg-gs1-blue px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-gs1-blue-dark sm:min-w-[110px] sm:px-5 sm:text-sm"
-          >
-            {t("common.continue")}
-            <span aria-hidden>{isRTL ? "←" : "→"}</span>
-          </button>
-        </div>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+        {t("documents.mandatoryHeading")}
+      </p>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        {MANDATORY.map((field) => (
+          <UploadCard
+            key={field.key}
+            label={field.label}
+            required
+            hint={
+              field.pdfOnly
+                ? t("documents.hintPdf", { max: field.maxMb })
+                : t("documents.hintPdfJpg", { max: field.maxMb })
+            }
+            accept={
+              field.pdfOnly ? ".pdf,application/pdf" : ".pdf,.jpg,.jpeg,image/jpeg,application/pdf"
+            }
+            error={errors[field.key]}
+            meta={values[field.key]}
+            onFile={(file) => {
+              if (!file) {
+                setFile(field.key, null);
+                return;
+              }
+              const msg = validateFile(file, field.maxMb, field.pdfOnly);
+              if (msg) setFile(field.key, null, msg);
+              else setFile(field.key, file);
+            }}
+          />
+        ))}
       </div>
+
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+        {t("documents.optionalHeading")}
+      </p>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        {OPTIONAL.map((field) => (
+          <UploadCard
+            key={field.key}
+            label={field.label}
+            hint={t("documents.hintPdf", { max: field.maxMb })}
+            accept=".pdf,application/pdf"
+            error={errors[field.key]}
+            meta={values[field.key]}
+            onFile={(file) => {
+              if (!file) {
+                setFile(field.key, null);
+                return;
+              }
+              const msg = validateFile(file, field.maxMb, true);
+              if (msg) setFile(field.key, null, msg);
+              else setFile(field.key, file);
+            }}
+          />
+        ))}
+      </div>
+
+      {formError ? <p className="text-xs font-medium text-rose-600">{formError}</p> : null}
+
+      <StepFormFooter
+        active={3}
+        showBack
+        onBack={onBack}
+        primaryLabel={t("common.saveNext")}
+        onPrimaryClick={handleContinue}
+      />
     </div>
   );
 }
 
-function DocumentCard({
+function UploadCard({
   label,
   required,
-  optional,
   hint,
-  placeholder,
-  value,
-  onChange,
-  icon: Icon,
+  accept,
+  meta,
   error,
+  onFile,
 }: {
   label: string;
   required?: boolean;
-  optional?: boolean;
   hint: string;
-  placeholder: string;
-  value: string;
-  onChange: (value: string) => void;
-  icon: typeof FileText;
+  accept: string;
+  meta: FileMeta | null;
   error?: string;
+  onFile: (file: File | null) => void;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function onChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0] ?? null;
+    onFile(f);
+    e.target.value = "";
+  }
+
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4">
       <div className="mb-2 flex items-start gap-3">
-        <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-md bg-slate-100 text-slate-600">
-          <Icon size={15} />
+        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-600">
+          <Upload size={15} />
         </span>
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-slate-700">
             {label}
-            {required ? <span className="ml-1 text-gs1-orange">*</span> : null}
-            {optional ? (
-              <span className="ml-1 text-xs font-normal text-slate-400">
-                (optional)
-              </span>
-            ) : null}
+            {required ? <span className="text-gs1-orange"> *</span> : null}
           </p>
           <p className="text-[11px] text-slate-500">{hint}</p>
         </div>
       </div>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className={`h-10 w-full rounded-md border px-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 ${
-          error
-            ? "border-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-100"
-            : "border-slate-200 focus:border-gs1-blue focus:ring-2 focus:ring-gs1-blue/20"
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        className={`flex w-full flex-col items-center justify-center gap-1 rounded-md border border-dashed border-slate-200 bg-slate-50/80 py-6 text-xs text-slate-600 transition hover:border-gs1-blue hover:bg-blue-50/30 ${
+          error ? "border-rose-300 bg-rose-50/40" : ""
         }`}
-      />
+      >
+        <span className="font-medium text-slate-700">Click to upload or drag & drop</span>
+        {meta ? (
+          <span className="mt-1 max-w-full truncate px-2 text-[11px] font-semibold text-emerald-700">
+            {meta.name}
+          </span>
+        ) : null}
+      </button>
+      <input ref={inputRef} type="file" accept={accept} className="sr-only" onChange={onChange} />
       {error ? <p className="mt-1.5 text-xs font-medium text-rose-600">{error}</p> : null}
     </div>
   );
 }
-
-function ProgressDots({ active, total }: { active: number; total: number }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      {Array.from({ length: total }).map((_, i) => {
-        const isActive = i + 1 === active;
-        const isDone = i + 1 < active;
-        return (
-          <span
-            key={i}
-            className={`h-1.5 rounded-full transition-all ${
-              isActive
-                ? "w-6 bg-gs1-orange"
-                : isDone
-                  ? "w-3 bg-gs1-blue"
-                  : "w-3 bg-slate-200"
-            }`}
-          />
-        );
-      })}
-    </div>
-  );
-}
-

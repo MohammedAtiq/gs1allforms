@@ -1,10 +1,10 @@
 export type StepId =
+  | "categories"
   | "company"
-  | "category"
   | "documents"
-  | "fees"
-  | "declaration"
-  | "review";
+  | "contacts"
+  | "review"
+  | "payment";
 
 export interface StepDefinition {
   id: StepId;
@@ -15,39 +15,39 @@ export interface StepDefinition {
 
 export const STEPS: StepDefinition[] = [
   {
-    id: "company",
+    id: "categories",
     index: 1,
-    title: "Company Info",
-    subtitle: "Basic company details",
+    title: "Categories",
+    subtitle: "Select provider categories",
   },
   {
-    id: "category",
+    id: "company",
     index: 2,
-    title: "Category",
-    subtitle: "Registration category",
+    title: "Company",
+    subtitle: "Company details",
   },
   {
     id: "documents",
     index: 3,
     title: "Documents",
-    subtitle: "Legal document numbers",
+    subtitle: "Document upload",
   },
   {
-    id: "fees",
+    id: "contacts",
     index: 4,
-    title: "Fee & Payment",
-    subtitle: "Fees & payment method",
-  },
-  {
-    id: "declaration",
-    index: 5,
-    title: "Declaration",
-    subtitle: "Authorisation & consent",
+    title: "Contacts",
+    subtitle: "Contact details",
   },
   {
     id: "review",
+    index: 5,
+    title: "Review",
+    subtitle: "Review & submit",
+  },
+  {
+    id: "payment",
     index: 6,
-    title: "Review & Submit",
-    subtitle: "Final review & submit",
+    title: "Payment",
+    subtitle: "Fee & payment",
   },
 ];
