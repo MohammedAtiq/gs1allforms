@@ -19,6 +19,7 @@ interface ReviewStepProps {
   onBack: () => void;
   onEdit: (step: StepId) => void;
   onProceedToPayment: () => void;
+  isSubmitting?: boolean;
 }
 
 function turnoverLabel(value?: string): string {
@@ -39,6 +40,7 @@ export function ReviewStep({
   onBack,
   onEdit,
   onProceedToPayment,
+  isSubmitting = false,
 }: ReviewStepProps) {
   const { t } = useTranslation();
   const [consent, setConsent] = useState(false);
@@ -175,8 +177,9 @@ export function ReviewStep({
         active={5}
         showBack
         onBack={onBack}
-        primaryLabel={t("review.proceedPayment")}
+        primaryLabel={isSubmitting ? "Submitting..." : t("review.proceedPayment")}
         onPrimaryClick={handleProceed}
+        primaryDisabled={isSubmitting}
       />
     </div>
   );

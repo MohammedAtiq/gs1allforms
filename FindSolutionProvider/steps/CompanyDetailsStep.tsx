@@ -20,6 +20,7 @@ interface CompanyDetailsStepProps {
   defaultValues?: Partial<CompanyProfileValues>;
   onBack: () => void;
   onSubmit: (values: CompanyProfileValues) => void;
+  isSubmitting?: boolean;
 }
 
 function Subheading({ children }: { children: string }) {
@@ -32,6 +33,7 @@ export function CompanyDetailsStep({
   defaultValues,
   onBack,
   onSubmit,
+  isSubmitting: isApiSubmitting = false,
 }: CompanyDetailsStepProps) {
   const { t } = useTranslation();
   const {
@@ -220,7 +222,7 @@ export function CompanyDetailsStep({
         onBack={onBack}
         primaryLabel={t("common.saveNext")}
         primaryType="submit"
-        primaryDisabled={isSubmitting}
+        primaryDisabled={isSubmitting || isApiSubmitting}
       />
     </form>
   );

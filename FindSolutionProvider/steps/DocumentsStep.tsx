@@ -11,13 +11,26 @@ export interface FileMeta {
   type: string;
 }
 
+/** Actual File objects — used for multipart/form-data upload */
+export interface DocumentsFiles {
+  crCertificate:          File | null;
+  vatCertificate:         File | null;
+  financialStatements:    File | null;
+  plStatement:            File | null;
+  companyProfileBrochure: File | null;
+  technicalCapability:    File | null;
+}
+
+/** FileMeta for display + serialisable state */
 export interface DocumentsValues {
-  crCertificate: FileMeta | null;
-  vatCertificate: FileMeta | null;
-  financialStatements: FileMeta | null;
-  plStatement: FileMeta | null;
+  crCertificate:          FileMeta | null;
+  vatCertificate:         FileMeta | null;
+  financialStatements:    FileMeta | null;
+  plStatement:            FileMeta | null;
   companyProfileBrochure: FileMeta | null;
-  technicalCapability: FileMeta | null;
+  technicalCapability:    FileMeta | null;
+  /** Raw File objects kept alongside meta for upload */
+  _files?: Partial<DocumentsFiles>;
 }
 
 interface DocumentsStepProps {
@@ -33,9 +46,10 @@ const empty: DocumentsValues = {
   plStatement: null,
   companyProfileBrochure: null,
   technicalCapability: null,
+  _files: {},
 };
 
-type DocKey = keyof DocumentsValues;
+type DocKey = keyof DocumentsFiles;
 
 const MANDATORY: { key: DocKey; label: string; maxMb: number; pdfOnly?: boolean }[] = [
   { key: "crCertificate", label: "Commercial Registration (CR) Certificate", maxMb: 5 },
@@ -77,7 +91,11 @@ export function DocumentsStep({ defaultValues, onBack, onSubmit }: DocumentsStep
   const [formError, setFormError] = useState("");
 
   const setFile = useCallback((key: DocKey, file: File | null, err?: string) => {
-    setValues((prev) => ({ ...prev, [key]: file ? toMeta(file) : null }));
+    setValues((prev) => ({
+      ...prev,
+      [key]: file ? toMeta(file) : null,
+      _files: { ...prev._files, [key]: file ?? null },
+    }));
     setErrors((prev) => ({ ...prev, [key]: err }));
     setFormError("");
   }, []);

@@ -17,6 +17,7 @@ import { ReviewStep } from "./steps/ReviewStep";
 import type { CompanyProfileValues } from "./schemas/companyProfile";
 import type { ContactsValues } from "./schemas/contacts";
 import { STEPS, type StepId } from "./types";
+import { useBecomeSolutionProvider } from "@/services/formService";
 
 interface FormData {
   categories?: string[];
@@ -39,6 +40,9 @@ function FindSolutionProviderContent() {
   const [currentStep, setCurrentStep] = useState<StepId>("categories");
   const [data, setData] = useState<FormData>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [apiError, setApiError] = useState<string>("");
+
+  const { mutateAsync: submitToApi, isPending: isApiPending } = useBecomeSolutionProvider();
 
   const completedPercent = useMemo(() => {
     const idx = STEPS.findIndex((s) => s.id === currentStep);
@@ -62,9 +66,19 @@ function FindSolutionProviderContent() {
     setCurrentStep("company");
   }
 
-  function handleCompanySubmit(values: CompanyProfileValues) {
-    setData((prev) => ({ ...prev, company: values }));
-    setCurrentStep("documents");
+  async function handleCompanySubmit(values: CompanyProfileValues) {
+    setApiError("");
+    try {
+      await submitToApi({
+        crNumber:   values.crNumber,
+        company:    values,
+        categories: data.categories ?? [],
+      });
+      setData((prev) => ({ ...prev, company: values }));
+      setCurrentStep("documents");
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    }
   }
 
   function handleDocumentsSubmit(values: DocumentsValues) {
@@ -77,9 +91,23 @@ function FindSolutionProviderContent() {
     setCurrentStep("review");
   }
 
-  function handleProceedToPayment() {
-    setData((prev) => ({ ...prev, reviewConsent: true }));
-    setCurrentStep("payment");
+  async function handleProceedToPayment() {
+    if (!data.company) return;
+    setApiError("");
+    try {
+      await submitToApi({
+        crNumber:    data.company.crNumber,
+        company:     data.company,
+        categories:  data.categories ?? [],
+        contacts:    data.contacts,
+        documents:   data.documents?._files as import("@/FindSolutionProvider/steps/DocumentsStep").DocumentsFiles,
+        declaration: true,
+      });
+      setData((prev) => ({ ...prev, reviewConsent: true }));
+      setCurrentStep("payment");
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    }
   }
 
   function handlePaymentSubmit(payment: PaymentValues) {
@@ -123,6 +151,12 @@ function FindSolutionProviderContent() {
             <div className="flex flex-1 flex-col gap-4">
               <MobileStepCard currentStep={currentStep} />
 
+              {apiError ? (
+                <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+                  {apiError}
+                </p>
+              ) : null}
+
               <section className="flex-1 rounded-xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
                 {currentStep === "categories" ? (
                   <CategoryStep
@@ -134,6 +168,7 @@ function FindSolutionProviderContent() {
                     defaultValues={data.company}
                     onBack={() => setCurrentStep("categories")}
                     onSubmit={handleCompanySubmit}
+                    isSubmitting={isApiPending}
                   />
                 ) : currentStep === "documents" ? (
                   <DocumentsStep
@@ -156,6 +191,7 @@ function FindSolutionProviderContent() {
                     onBack={() => setCurrentStep("contacts")}
                     onEdit={(step) => setCurrentStep(step)}
                     onProceedToPayment={handleProceedToPayment}
+                    isSubmitting={isApiPending}
                   />
                 ) : currentStep === "payment" ? (
                   <PaymentStep

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import QueryProvider from "@/providers/QueryProvider";
 
 export const metadata: Metadata = {
   title: "GS1 Solution Provider Registration",
@@ -18,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className="h-screen overflow-y-auto bg-gs1-surface font-sans text-slate-800">
-        {children}
+        <QueryProvider>{children}</QueryProvider>
       </body>
     </html>
   );
