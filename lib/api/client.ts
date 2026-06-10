@@ -6,6 +6,8 @@ const apiClient = axios.create({
   timeout: 30_000,
 });
 
+// No auth interceptor needed — open API
+
 // Response interceptor — global error handling
 apiClient.interceptors.response.use(
   (response) => response.data,

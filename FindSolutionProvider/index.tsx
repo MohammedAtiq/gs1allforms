@@ -68,16 +68,17 @@ function FindSolutionProviderContent() {
 
   async function handleCompanySubmit(values: CompanyProfileValues) {
     setApiError("");
+    // Save data and navigate immediately — API call runs in background
+    setData((prev) => ({ ...prev, company: values }));
+    setCurrentStep("documents");
     try {
       await submitToApi({
         crNumber:   values.crNumber,
         company:    values,
         categories: data.categories ?? [],
       });
-      setData((prev) => ({ ...prev, company: values }));
-      setCurrentStep("documents");
     } catch (err) {
-      setApiError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      console.error("Company submit API error:", err);
     }
   }
 
@@ -94,6 +95,9 @@ function FindSolutionProviderContent() {
   async function handleProceedToPayment() {
     if (!data.company) return;
     setApiError("");
+    // Navigate immediately — API call runs in background
+    setData((prev) => ({ ...prev, reviewConsent: true }));
+    setCurrentStep("payment");
     try {
       await submitToApi({
         crNumber:    data.company.crNumber,
@@ -103,10 +107,8 @@ function FindSolutionProviderContent() {
         documents:   data.documents?._files as import("@/FindSolutionProvider/steps/DocumentsStep").DocumentsFiles,
         declaration: true,
       });
-      setData((prev) => ({ ...prev, reviewConsent: true }));
-      setCurrentStep("payment");
     } catch (err) {
-      setApiError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      console.error("Review submit API error:", err);
     }
   }
 
