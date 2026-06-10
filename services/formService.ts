@@ -78,22 +78,27 @@ function buildFormData(payload: SolutionProviderPayload): FormData {
   return fd;
 }
 
+const UPLOAD_BASE_URL = process.env.NEXT_PUBLIC_UPLOAD_BASE_URL ?? "http://20.233.200.211:8001";
+
 /**
  * POST /become_solution_provider/{crNumber}
  *
  * Called twice:
  *  1. Step 2 — Save & Next  → company + categories only (no files)
  *  2. Step 5 — Proceed to Payment → full payload with files + declaration
+ *
+ * Always uses NEXT_PUBLIC_UPLOAD_BASE_URL directly (bypasses proxy)
  */
 export function useBecomeSolutionProvider() {
   return useMutation({
     mutationFn: (payload: SolutionProviderPayload) => {
-      const url = API_ENDPOINTS.BECOME_SOLUTION_PROVIDER.replace(
+      const path = API_ENDPOINTS.BECOME_SOLUTION_PROVIDER.replace(
         ":crNumber",
         payload.crNumber
       );
+      const fullUrl = `${UPLOAD_BASE_URL}${path}`;
       const fd = buildFormData(payload);
-      return apiService.post(url, fd, {
+      return apiService.post(fullUrl, fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
     },

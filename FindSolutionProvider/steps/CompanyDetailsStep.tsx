@@ -23,6 +23,13 @@ interface CompanyDetailsStepProps {
   isSubmitting?: boolean;
 }
 
+function blockNonNumeric(e: React.KeyboardEvent<HTMLInputElement>) {
+  const allowed = ["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab", "Home", "End"];
+  if (!allowed.includes(e.key) && !/^\d$/.test(e.key)) {
+    e.preventDefault();
+  }
+}
+
 function Subheading({ children }: { children: string }) {
   return (
     <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">{children}</p>
@@ -77,6 +84,7 @@ export function CompanyDetailsStep({
           placeholder={t("company.placeholderCr10")}
           inputMode="numeric"
           maxLength={10}
+          onKeyDown={blockNonNumeric}
           error={errors.crNumber?.message}
           {...register("crNumber")}
         />
@@ -86,6 +94,7 @@ export function CompanyDetailsStep({
           placeholder={t("company.placeholderVat")}
           inputMode="numeric"
           maxLength={15}
+          onKeyDown={blockNonNumeric}
           error={errors.vatNumber?.message}
           {...register("vatNumber")}
         />
@@ -146,6 +155,7 @@ export function CompanyDetailsStep({
           placeholder={t("company.placeholderPostal")}
           inputMode="numeric"
           maxLength={5}
+          onKeyDown={blockNonNumeric}
           error={errors.postalCode?.message}
           {...register("postalCode")}
         />
@@ -167,6 +177,9 @@ export function CompanyDetailsStep({
           label={t("company.year")}
           optional
           placeholder="e.g. 2018"
+          inputMode="numeric"
+          maxLength={4}
+          onKeyDown={blockNonNumeric}
           error={errors.yearEstablished?.message}
           {...register("yearEstablished")}
         />

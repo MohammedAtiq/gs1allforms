@@ -52,33 +52,47 @@ const empty: DocumentsValues = {
 type DocKey = keyof DocumentsFiles;
 
 const MANDATORY: { key: DocKey; label: string; maxMb: number; pdfOnly?: boolean }[] = [
-  { key: "crCertificate", label: "Commercial Registration (CR) Certificate", maxMb: 5 },
-  { key: "vatCertificate", label: "ZATCA VAT Registration Certificate", maxMb: 5 },
-  { key: "financialStatements", label: "Audited Financial Statements - 2 Years", maxMb: 10, pdfOnly: true },
-  { key: "plStatement", label: "Profit & Loss Statement", maxMb: 5 },
+  { key: "crCertificate", label: "Commercial Registration (CR) Certificate", maxMb: 1 },
+  { key: "vatCertificate", label: "ZATCA VAT Registration Certificate", maxMb: 1 },
+  { key: "financialStatements", label: "Audited Financial Statements - 2 Years", maxMb: 1, pdfOnly: true },
+  { key: "plStatement", label: "Profit & Loss Statement", maxMb: 1 },
 ];
 
 const OPTIONAL: { key: DocKey; label: string; maxMb: number }[] = [
-  { key: "companyProfileBrochure", label: "Company Profile / Brochure", maxMb: 10 },
-  { key: "technicalCapability", label: "Technical Capability Document", maxMb: 10 },
+  { key: "companyProfileBrochure", label: "Company Profile / Brochure", maxMb: 1 },
+  { key: "technicalCapability", label: "Technical Capability Document", maxMb: 1 },
 ];
 
 function toMeta(file: File): FileMeta {
   return { name: file.name, size: file.size, type: file.type };
 }
 
+const VIDEO_MIME_PREFIXES = ["video/"];
+const VIDEO_EXTENSIONS = ["mp4", "mov", "avi", "mkv", "wmv", "flv", "webm", "mpeg", "3gp"];
+
 function validateFile(file: File, maxMb: number, pdfOnly?: boolean): string | null {
-  if (file.size > maxMb * 1024 * 1024) {
-    return `File must be at most ${maxMb}MB.`;
+  // Block video files
+  if (VIDEO_MIME_PREFIXES.some((p) => file.type.startsWith(p))) {
+    return "Video files are not allowed.";
   }
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  if (VIDEO_EXTENSIONS.includes(ext)) {
+    return "Video files are not allowed.";
+  }
+
+  // Max size check
+  if (file.size > maxMb * 1024 * 1024) {
+    return `File size must be at most ${maxMb}MB.`;
+  }
+
+  // Type check
   if (pdfOnly) {
     if (ext !== "pdf" && file.type !== "application/pdf") {
-      return "PDF only for this field.";
+      return "Only PDF files are allowed for this field.";
     }
   } else {
     if (!["pdf", "jpg", "jpeg"].includes(ext)) {
-      return "PDF or JPG only.";
+      return "Only PDF or JPG files are allowed.";
     }
   }
   return null;

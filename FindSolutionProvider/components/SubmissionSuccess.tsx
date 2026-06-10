@@ -2,13 +2,11 @@
 
 import { CheckCheck, Home } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { PaymentValues } from "../steps/PaymentStep";
 
 interface SubmissionSuccessProps {
   applicantName?: string;
   companyName?: string;
   categoryCount: number;
-  payment?: PaymentValues;
   onBackToHome: () => void;
 }
 
@@ -16,14 +14,9 @@ export function SubmissionSuccess({
   applicantName,
   companyName,
   categoryCount,
-  payment,
   onBackToHome,
 }: SubmissionSuccessProps) {
   const { t } = useTranslation();
-  const ref =
-    payment?.paymentMethod && payment?.netAmountSar != null
-      ? `${payment.paymentMethod.toUpperCase()}-${payment.netAmountSar}`
-      : "—";
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 items-center justify-center px-6 py-10">
@@ -44,10 +37,9 @@ export function SubmissionSuccess({
           })}
         </p>
 
-        <div className="mt-6 grid grid-cols-3 gap-1.5 rounded-xl bg-slate-50 p-2 sm:gap-2 sm:p-3">
+        <div className="mt-6 grid grid-cols-2 gap-1.5 rounded-xl bg-slate-50 p-2 sm:gap-2 sm:p-3">
           <Metric label={t("success.categories")} value={String(categoryCount)} />
           <Metric label={t("success.processing")} value="3-5 Days" />
-          <Metric label={t("success.reference")} value={ref} />
         </div>
 
         <button

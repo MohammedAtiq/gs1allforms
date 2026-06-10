@@ -95,9 +95,9 @@ function FindSolutionProviderContent() {
   async function handleProceedToPayment() {
     if (!data.company) return;
     setApiError("");
-    // Navigate immediately — API call runs in background
+    // Show success immediately — API call runs in background
     setData((prev) => ({ ...prev, reviewConsent: true }));
-    setCurrentStep("payment");
+    setIsSubmitted(true);
     try {
       await submitToApi({
         crNumber:    data.company.crNumber,
@@ -138,7 +138,6 @@ function FindSolutionProviderContent() {
           applicantName={data.contacts?.billingName}
           companyName={data.company?.companyNameEn}
           categoryCount={selectedCategories.length}
-          payment={data.payment}
           onBackToHome={handleBackToHome}
         />
       ) : (

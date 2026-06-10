@@ -35,8 +35,24 @@ export const companyProfileSchema = z.object({
     .trim()
     .min(1, { message: "Postal code is required" })
     .regex(/^\d{5}$/, { message: "Enter a valid 5-digit postal code" }),
-  website: z.string().trim().optional().or(z.literal("")),
-  yearEstablished: z.string().trim().optional().or(z.literal("")),
+  website: z
+    .string()
+    .trim()
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (v) => !v || /^(https?:\/\/)?([\w-]+\.)+[\w]{2,}(\/.*)?$/.test(v),
+      { message: "Enter a valid website URL" }
+    ),
+  yearEstablished: z
+    .string()
+    .trim()
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (v) => !v || /^\d{4}$/.test(v),
+      { message: "Enter a valid 4-digit year" }
+    ),
   annualTurnover: z.string().trim().min(1, { message: "Annual turnover is required" }),
   legalStatus: z.string().trim().min(1, { message: "Company legal status is required" }),
   companyDescriptionEn: z.string().trim().optional().or(z.literal("")),

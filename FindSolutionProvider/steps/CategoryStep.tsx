@@ -87,7 +87,7 @@ export function CategoryStep({ defaultSelected = [], onSubmit }: CategoryStepPro
               type="button"
               title={item.description}
               onClick={() => toggle(item.id)}
-              className={`flex h-[50px] items-center gap-3 rounded-xl border px-3 text-left transition ${
+              className={`flex h-[50px] cursor-pointer items-center gap-3 rounded-xl border px-3 text-left transition ${
                 isSelected
                   ? "border-gs1-blue bg-blue-50/40 ring-1 ring-gs1-blue"
                   : "border-slate-200 bg-white hover:border-slate-300"

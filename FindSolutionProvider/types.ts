@@ -44,10 +44,4 @@ export const STEPS: StepDefinition[] = [
     title: "Review",
     subtitle: "Review & submit",
   },
-  {
-    id: "payment",
-    index: 6,
-    title: "Payment",
-    subtitle: "Fee & payment",
-  },
 ];
