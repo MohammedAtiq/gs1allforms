@@ -5,17 +5,30 @@ import type { CompanyProfileValues } from "@/FindSolutionProvider/schemas/compan
 import type { ContactsValues } from "@/FindSolutionProvider/schemas/contacts";
 import type { DocumentsFiles } from "@/FindSolutionProvider/steps/DocumentsStep";
 
+// ── Call 1: company step ──────────────────────────────────────────────────────
 export interface SolutionProviderPayload {
   crNumber: string;
   company: CompanyProfileValues;
   categories: string[];
-  contacts?: ContactsValues;
-  documents?: DocumentsFiles;
-  declaration?: boolean;
 }
 
-function buildFormData(payload: SolutionProviderPayload): FormData {
-  const { company, categories, contacts, documents, declaration } = payload;
+// ── Call 2: review step (only newly added data) ───────────────────────────────
+export interface SolutionProviderUpdatePayload {
+  crNumber: string;
+  contacts: ContactsValues;
+  documents?: DocumentsFiles;
+  declaration: boolean;
+}
+
+const UPLOAD_BASE_URL = process.env.NEXT_PUBLIC_UPLOAD_BASE_URL ?? "http://20.233.200.211:8001";
+
+function makeUrl(crNumber: string) {
+  return `${UPLOAD_BASE_URL}${API_ENDPOINTS.BECOME_SOLUTION_PROVIDER.replace(":crNumber", crNumber)}`;
+}
+
+// ── Call 1: POST company + categories ─────────────────────────────────────────
+function buildCompanyFormData(payload: SolutionProviderPayload): FormData {
+  const { company, categories } = payload;
 
   const dataJson = {
     company: {
@@ -36,31 +49,41 @@ function buildFormData(payload: SolutionProviderPayload): FormData {
       companyDescriptionEn: company.companyDescriptionEn ?? "",
       categories,
     },
-    ...(contacts && {
-      contacts: {
-        billing: {
-          name:   contacts.billingName,
-          title:  contacts.billingTitle,
-          mobile: contacts.billingMobile,
-          email:  contacts.billingEmail,
-        },
-        companyHead: {
-          name:        contacts.headName,
-          designation: contacts.headDesignation,
-          mobile:      contacts.headMobile,
-          email:       contacts.headEmail,
-        },
-        ...(contacts.techName && {
-          technical: {
-            name:        contacts.techName,
-            designation: contacts.techDesignation ?? "",
-            mobile:      contacts.techMobile ?? "",
-            email:       contacts.techEmail ?? "",
-          },
-        }),
+  };
+
+  const fd = new FormData();
+  fd.append("data", JSON.stringify(dataJson));
+  return fd;
+}
+
+// ── Call 2: POST contacts + documents + declaration ───────────────────────────
+function buildUpdateFormData(payload: SolutionProviderUpdatePayload): FormData {
+  const { contacts, documents, declaration } = payload;
+
+  const dataJson = {
+    contacts: {
+      billing: {
+        name:   contacts.billingName,
+        title:  contacts.billingTitle,
+        mobile: contacts.billingMobile,
+        email:  contacts.billingEmail,
       },
-    }),
-    ...(declaration !== undefined && { declaration }),
+      companyHead: {
+        name:        contacts.headName,
+        designation: contacts.headDesignation,
+        mobile:      contacts.headMobile,
+        email:       contacts.headEmail,
+      },
+      ...(contacts.techName && {
+        technical: {
+          name:        contacts.techName,
+          designation: contacts.techDesignation ?? "",
+          mobile:      contacts.techMobile ?? "",
+          email:       contacts.techEmail ?? "",
+        },
+      }),
+    },
+    declaration,
   };
 
   const fd = new FormData();
@@ -78,29 +101,22 @@ function buildFormData(payload: SolutionProviderPayload): FormData {
   return fd;
 }
 
-const UPLOAD_BASE_URL = process.env.NEXT_PUBLIC_UPLOAD_BASE_URL ?? "http://20.233.200.211:8001";
-
-/**
- * POST /become_solution_provider/{crNumber}
- *
- * Called twice:
- *  1. Step 2 — Save & Next  → company + categories only (no files)
- *  2. Step 5 — Proceed to Payment → full payload with files + declaration
- *
- * Always uses NEXT_PUBLIC_UPLOAD_BASE_URL directly (bypasses proxy)
- */
+/** Step 2 — Save & Next: sends company + categories only */
 export function useBecomeSolutionProvider() {
   return useMutation({
-    mutationFn: (payload: SolutionProviderPayload) => {
-      const path = API_ENDPOINTS.BECOME_SOLUTION_PROVIDER.replace(
-        ":crNumber",
-        payload.crNumber
-      );
-      const fullUrl = `${UPLOAD_BASE_URL}${path}`;
-      const fd = buildFormData(payload);
-      return apiService.post(fullUrl, fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-    },
+    mutationFn: (payload: SolutionProviderPayload) =>
+      apiService.post(makeUrl(payload.crNumber), buildCompanyFormData(payload), {
+        headers: { "Content-Type": undefined },
+      }),
+  });
+}
+
+/** Step 5 — Proceed to Payment: sends contacts + documents + declaration only */
+export function useUpdateSolutionProvider() {
+  return useMutation({
+    mutationFn: (payload: SolutionProviderUpdatePayload) =>
+      apiService.post(makeUrl(payload.crNumber), buildUpdateFormData(payload), {
+        headers: { "Content-Type": undefined },
+      }),
   });
 }

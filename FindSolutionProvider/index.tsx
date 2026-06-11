@@ -17,7 +17,7 @@ import { ReviewStep } from "./steps/ReviewStep";
 import type { CompanyProfileValues } from "./schemas/companyProfile";
 import type { ContactsValues } from "./schemas/contacts";
 import { STEPS, type StepId } from "./types";
-import { useBecomeSolutionProvider } from "@/services/formService";
+import { useBecomeSolutionProvider, useUpdateSolutionProvider } from "@/services/formService";
 
 interface FormData {
   categories?: string[];
@@ -43,6 +43,7 @@ function FindSolutionProviderContent() {
   const [apiError, setApiError] = useState<string>("");
 
   const { mutateAsync: submitToApi, isPending: isApiPending } = useBecomeSolutionProvider();
+  const { mutateAsync: updateApi, isPending: isUpdatePending } = useUpdateSolutionProvider();
 
   const completedPercent = useMemo(() => {
     const idx = STEPS.findIndex((s) => s.id === currentStep);
@@ -68,7 +69,6 @@ function FindSolutionProviderContent() {
 
   async function handleCompanySubmit(values: CompanyProfileValues) {
     setApiError("");
-    // Save data and navigate immediately — API call runs in background
     setData((prev) => ({ ...prev, company: values }));
     setCurrentStep("documents");
     try {
@@ -78,7 +78,7 @@ function FindSolutionProviderContent() {
         categories: data.categories ?? [],
       });
     } catch (err) {
-      console.error("Company submit API error:", err);
+      setApiError(err instanceof Error ? err.message : "Failed to save company details. Please try again.");
     }
   }
 
@@ -93,22 +93,19 @@ function FindSolutionProviderContent() {
   }
 
   async function handleProceedToPayment() {
-    if (!data.company) return;
+    if (!data.company || !data.contacts) return;
     setApiError("");
-    // Show success immediately — API call runs in background
-    setData((prev) => ({ ...prev, reviewConsent: true }));
-    setIsSubmitted(true);
     try {
-      await submitToApi({
+      await updateApi({
         crNumber:    data.company.crNumber,
-        company:     data.company,
-        categories:  data.categories ?? [],
         contacts:    data.contacts,
         documents:   data.documents?._files as import("@/FindSolutionProvider/steps/DocumentsStep").DocumentsFiles,
         declaration: true,
       });
+      setData((prev) => ({ ...prev, reviewConsent: true }));
+      setIsSubmitted(true);
     } catch (err) {
-      console.error("Review submit API error:", err);
+      setApiError(err instanceof Error ? err.message : "Submission failed. Please try again.");
     }
   }
 
@@ -192,7 +189,7 @@ function FindSolutionProviderContent() {
                     onBack={() => setCurrentStep("contacts")}
                     onEdit={(step) => setCurrentStep(step)}
                     onProceedToPayment={handleProceedToPayment}
-                    isSubmitting={isApiPending}
+                    isSubmitting={isUpdatePending}
                   />
                 ) : currentStep === "payment" ? (
                   <PaymentStep

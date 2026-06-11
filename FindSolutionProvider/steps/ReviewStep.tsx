@@ -93,7 +93,7 @@ export function ReviewStep({
             onClick={() => onEdit("company")}
             className="text-xs font-semibold text-gs1-orange hover:underline"
           >
-            Edit
+            {t("common.edit")}
           </button>
         }
         rows={[
@@ -118,7 +118,7 @@ export function ReviewStep({
             onClick={() => onEdit("contacts")}
             className="text-xs font-semibold text-gs1-orange hover:underline"
           >
-            Edit
+            {t("common.edit")}
           </button>
         }
         rows={[
@@ -137,7 +137,7 @@ export function ReviewStep({
             onClick={() => onEdit("documents")}
             className="text-xs font-semibold text-gs1-orange hover:underline"
           >
-            Edit
+            {t("common.edit")}
           </button>
         }
         rows={[
@@ -177,7 +177,7 @@ export function ReviewStep({
         active={5}
         showBack
         onBack={onBack}
-        primaryLabel={isSubmitting ? "Submitting..." : t("review.proceedPayment")}
+        primaryLabel={isSubmitting ? t("common.submitting") : t("review.proceedPayment")}
         onPrimaryClick={handleProceed}
         primaryDisabled={isSubmitting}
       />
