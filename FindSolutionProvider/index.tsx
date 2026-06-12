@@ -112,7 +112,6 @@ function FindSolutionProviderContent() {
   function handlePaymentSubmit(payment: PaymentValues) {
     setData((prev) => {
       const payload: FormData = { ...prev, payment };
-      console.log("GS1 Authorised Solution Provider — full application payload:", payload);
       return payload;
     });
     setIsSubmitted(true);

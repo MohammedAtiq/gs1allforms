@@ -12,7 +12,11 @@ const apiClient = axios.create({
 apiClient.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    const message = error.response?.data?.message ?? error.message;
+    const status = error.response?.status;
+    const message =
+      status !== undefined && status >= 400 && status < 500
+        ? (error.response?.data?.message ?? "Request failed. Please check your input.")
+        : "Something went wrong. Please try again later.";
     return Promise.reject(new Error(message));
   }
 );

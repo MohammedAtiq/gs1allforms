@@ -20,7 +20,10 @@ export interface SolutionProviderUpdatePayload {
   declaration: boolean;
 }
 
-const UPLOAD_BASE_URL = process.env.NEXT_PUBLIC_UPLOAD_BASE_URL ?? "http://20.233.200.211:8001";
+const UPLOAD_BASE_URL = process.env.NEXT_PUBLIC_UPLOAD_BASE_URL ?? ""
+if (!UPLOAD_BASE_URL && process.env.NODE_ENV !== "test") {
+  console.warn("[formService] WARNING: NEXT_PUBLIC_UPLOAD_BASE_URL is not set — file uploads will fail.");
+}
 
 function makeUrl(crNumber: string) {
   return `${UPLOAD_BASE_URL}${API_ENDPOINTS.BECOME_SOLUTION_PROVIDER.replace(":crNumber", crNumber)}`;
